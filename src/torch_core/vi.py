@@ -30,6 +30,7 @@ if __name__ == "__main__":
                             'duolingo',
                             'wordbank',
                             'pisa2015_science',
+                            'squad'
                         ],
                         help='which dataset to run on (default: 1pl_simulation)')
 

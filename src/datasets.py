@@ -39,6 +39,8 @@ def load_dataset(dataset_name, train=True, **kwargs):
         return WordBank_Language(train=train, **kwargs)
     elif dataset_name == 'pisa2015_science':
         return PISAScience2015(train=train, **kwargs)
+    elif dataset_name == 'squad':
+        return SQUAD(train=train, **kwargs)
     else:
         raise Exception(f'Dataset {dataset_name} is not supported.')
 
@@ -414,6 +416,8 @@ class Children_LanguageAcquisition(torch.utils.data.Dataset):
         self.num_person = response.shape[0]
         self.num_item = response.shape[1]
 
+        print(self.response.shape, self.item_id.shape, self.mask.shape)
+
     def get_metadata(self, df):
         age = np.asarray(df['age'])
         education = np.asarray(df['education'])
@@ -439,6 +443,52 @@ class Children_LanguageAcquisition(torch.utils.data.Dataset):
 
         return index, response, item_id, mask
 
+
+import jsonlines
+
+from tqdm import tqdm
+
+class SQUAD(torch.utils.data.Dataset):
+    """
+    Load the SQUAD dataset for Pedro.
+    """
+    def __init__(
+        self, 
+        train: bool = True,
+        **kwargs
+    ) -> None:
+        super().__init__()
+
+        data = "data/leaderboard.jsonlines"
+        with jsonlines.open(data) as reader:
+            responses = [response for response in tqdm(reader)]
+
+        self.ix_to_id = list(responses[0]['predictions'].keys())
+        self.id_to_ix = { prediction_id: i for i, prediction_id in enumerate(self.ix_to_id) }
+        self.submission_ids = [response['submission_id'] for response in responses]
+
+        self.response = torch.zeros((len(responses), len(self.ix_to_id)), dtype=torch.long)
+
+        for i, response in enumerate(responses):
+            for j, prediction in enumerate(self.ix_to_id):
+                self.response[i, j] = response['predictions'][prediction]['scores']['exact_match']
+
+        self.mask = torch.ones_like(self.response)
+        self.item_id = torch.tensor(list(range(len(self.ix_to_id))))
+        self.length = self.response.shape[0]
+        self.num_person = self.response.shape[0]
+        self.num_item = self.response.shape[1]
+
+    def __len__(self):
+        return self.length 
+
+    def __getitem__(self, index):
+        response = self.response[index].float().unsqueeze(1)
+        item_id = self.item_id.long().unsqueeze(1)
+        mask = self.mask[index].bool().unsqueeze(1)
+
+        return index, response, item_id, mask
+    
 
 class DuoLingo_LanguageAcquisition(torch.utils.data.Dataset):
     """
@@ -677,6 +727,10 @@ class WordBank_Language(torch.utils.data.Dataset):
             response = response[:num_train]
         else:
             response = response[num_train:]
+
+
+        print(response)
+        print(response.shape)
 
         if max_num_person is not None:
             response = response[:max_num_person]

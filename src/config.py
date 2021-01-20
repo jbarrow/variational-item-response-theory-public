@@ -22,4 +22,5 @@ IS_REAL_WORLD = {
     'duolingo': True,
     'wordbank': True,
     'pisa2015_science': True,
+    'squad': True
 }
