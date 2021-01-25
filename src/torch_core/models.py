@@ -174,7 +174,7 @@ class VI_1PL(nn.Module):
 
         return -elbo
 
-    def log_marginal(self, response, mask, num_samples=100):
+    def log_marginal(self, index, response, mask, num_samples=100):
         with torch.no_grad():
             log_weight = []
             for _ in range(num_samples):
@@ -188,7 +188,7 @@ class VI_1PL(nn.Module):
                     item_feat,
                     item_feat_mu,
                     item_feat_logvar,
-                ) = self.forward(response, mask)
+                ) = self.forward(index, response, mask)
 
                 log_w = -self.elbo(
                     response,

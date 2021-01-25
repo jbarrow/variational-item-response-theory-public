@@ -465,6 +465,10 @@ class SQUAD(torch.utils.data.Dataset):
 
         self.ix_to_id = list(responses[0]['predictions'].keys())
         self.id_to_ix = { prediction_id: i for i, prediction_id in enumerate(self.ix_to_id) }
+
+        self.ix_to_model = []
+        self.model_to_ix = {}
+
         self.submission_ids = [response['submission_id'] for response in responses]
 
         self.response = torch.zeros((len(responses), len(self.ix_to_id)), dtype=torch.long)
@@ -472,9 +476,12 @@ class SQUAD(torch.utils.data.Dataset):
         for i, response in enumerate(responses):
             for j, prediction in enumerate(self.ix_to_id):
                 self.response[i, j] = response['predictions'][prediction]['scores']['exact_match']
+            self.model_to_ix[response['submission_id']] = i
+            self.ix_to_model.append(response['submission_id'])
 
-        self.mask = torch.ones_like(self.response)
-        self.item_id = torch.tensor(list(range(len(self.ix_to_id))))
+        self.mask = torch.ones_like(self.response).numpy()
+        self.response = self.response.numpy()
+        self.item_id = torch.tensor(list(range(len(self.ix_to_id)))).numpy()
         self.length = self.response.shape[0]
         self.num_person = self.response.shape[0]
         self.num_item = self.response.shape[1]
@@ -483,9 +490,9 @@ class SQUAD(torch.utils.data.Dataset):
         return self.length 
 
     def __getitem__(self, index):
-        response = self.response[index].float().unsqueeze(1)
-        item_id = self.item_id.long().unsqueeze(1)
-        mask = self.mask[index].bool().unsqueeze(1)
+        response = torch.from_numpy(self.response[index]).float().unsqueeze(1)
+        item_id = torch.from_numpy(self.item_id).long().unsqueeze(1)
+        mask = torch.from_numpy(self.mask[index]).bool().unsqueeze(1)
 
         return index, response, item_id, mask
     

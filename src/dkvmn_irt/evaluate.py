@@ -123,6 +123,8 @@ if __name__ == "__main__":
                 pred_logits, student_ability, question_difficulty = \
                     model(q_data, qa_data, label)
 
+                print(pred_logits.shape, student_ability.shape, question_difficulty.shape)
+
                 preds_ = torch.sigmoid(pred_logits)
                 preds.append(preds_)
 
